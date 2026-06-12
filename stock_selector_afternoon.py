@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from time_utils import now_bj, get_date_str, get_time_str, get_datetime_str
-from stock_monitor.utils import (
+from utils import (
     get_all_stocks_realtime,
     get_stock_kline,
     get_fund_flow_rank,

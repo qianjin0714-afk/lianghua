@@ -1,18 +1,19 @@
-name: 上午9点选股
+name: 📈 上午9点选股
 on:
   schedule:
     - cron: '0 1 * * 1-5'   # UTC 01:00 = 北京时间 09:00
-  workflow_dispatch:         # 支持手动触发
+  workflow_dispatch:
 
 jobs:
   stock_scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install akshare pandas numpy pytz
+      - run: pip install akshare pandas numpy pytz requests -q
       - run: python run_daily.py morning
         env:
           MAIL_SENDER: ${{ secrets.MAIL_SENDER }}

@@ -17,7 +17,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from time_utils import now_bj, get_date_str, get_time_str, get_datetime_str, is_trading_day
-from stock_monitor.utils import (
+from utils import (
+    get_stocks_realtime_with_fallback,
     get_stock_kline,
     get_all_stocks_realtime,
     get_board_concept_list,
@@ -37,6 +38,13 @@ def filter_morning_stocks() -> List[Dict[str, Any]]:
     # 1. 获取热点板块+实时行情(并行)
     print("\n[Step 1] 获取热点板块和实时行情...")
     hot_boards, all_stocks = _get_hot_boards_and_stocks()
+    if all_stocks is None or len(all_stocks) == 0:
+        print("  ⚠️ 实时行情为空，尝试昨日收盘数据...")
+        all_stocks = get_stocks_realtime_with_fallback()
+        if all_stocks is not None:
+            print(f"  昨日数据替代: {len(all_stocks)} 只")
+        else:
+            print("  ❌ 昨日数据也失败")
     print(f"  热点板块: {len(hot_boards)} 个 | 实时行情: {len(all_stocks) if all_stocks is not None else 0} 只")
 
     # 2. 筛选候选股

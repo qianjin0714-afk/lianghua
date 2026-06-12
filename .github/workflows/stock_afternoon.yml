@@ -1,4 +1,4 @@
-name: 下午2点选股
+name: 📈 下午2点选股
 on:
   schedule:
     - cron: '0 6 * * 1-5'   # UTC 06:00 = 北京时间 14:00
@@ -7,12 +7,13 @@ on:
 jobs:
   stock_scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install akshare pandas numpy pytz
+      - run: pip install akshare pandas numpy pytz requests -q
       - run: python run_daily.py afternoon
         env:
           MAIL_SENDER: ${{ secrets.MAIL_SENDER }}

@@ -644,3 +644,83 @@ def batch_calc_price_levels(
         except Exception:
             pass
     return results
+
+
+# ============================================================
+# 盘前备选行情（腾讯接口，盘前可用）
+# ============================================================
+
+def get_stocks_yesterday(max_retries: int = 3) -> Optional[pd.DataFrame]:
+    """
+    获取昨日收盘行情（盘前使用）
+    腾讯接口在非交易时间仍然返回最近交易日的数据
+    """
+    for attempt in range(max_retries):
+        try:
+            # 分批获取A股全部股票（每批500只）
+            all_rows = []
+            page = 0
+            while True:
+                offset = page * 500
+                url = (f"https://ifzq.gtimg.cn/appstock/app/newstock/rank?type=hy&offset={offset}&count=500&sort=f2&order=0")
+                raw = _curl(url)
+                if not raw:
+                    break
+                data = json.loads(raw)
+                items = data.get("data", {}).get("list", []) if "data" in data else data.get("list", [])
+                if not items:
+                    break
+                for item in items:
+                    try:
+                        code = str(item.get('code', '')).zfill(6)
+                        name = item.get('name', '')
+                        price = float(item.get('price', 0) or 0)
+                        chg_pct = float(item.get('chgPct', 0) or 0)
+                        chg = float(item.get('chg', 0) or 0)
+                        vol_ratio = float(item.get('volRatio', 1) or 0)
+                        volume = float(item.get('volume', 0) or 0)
+                        amount = float(item.get('amount', 0) or 0)
+                        if price > 0:
+                            all_rows.append({
+                                '股票代码': code,
+                                '股票名称': name,
+                                '最新价': price,
+                                '涨跌幅': chg_pct,
+                                '涨跌额': chg,
+                                '成交量': volume,
+                                '成交额': amount,
+                                '量比': vol_ratio,
+                            })
+                    except (ValueError, TypeError):
+                        continue
+                page += 1
+                if len(items) < 500:
+                    break
+
+            if not all_rows:
+                continue
+            return pd.DataFrame(all_rows)
+
+        except Exception:
+            if attempt < max_retries - 1:
+                time.sleep(3)
+                continue
+            return None
+    return None
+
+
+def get_stocks_realtime_with_fallback() -> pd.DataFrame:
+    """
+    获取实时行情，盘前则用昨日数据回退
+    """
+    df = get_all_stocks_realtime()
+    if df is not None and not df.empty:
+        return df
+    # 盘前：用昨日数据
+    print("  实时行情空，尝试获取昨日收盘数据...")
+    df = get_stocks_yesterday()
+    if df is not None and not df.empty:
+        print(f"  昨日数据获取成功: {len(df)} 只")
+        return df
+    print("  昨日数据也失败")
+    return pd.DataFrame()
